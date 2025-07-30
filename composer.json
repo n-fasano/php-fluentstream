@@ -1,0 +1,26 @@
+{
+    "name": "fasano/fluentstream",
+    "description": "A fluent interface for stream processing in PHP",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Fasano\\FluentStream\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Fasano\\FluentStream\\Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": "^8.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12.2"
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-html coverage"
+    }
+}

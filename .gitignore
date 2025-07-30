@@ -1,0 +1,9 @@
+# Dependencies
+vendor/
+
+# Coverage reports
+coverage/
+.phpunit.result.cache
+
+# IDE files
+.vscode/
