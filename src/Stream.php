@@ -2,35 +2,29 @@
 
 namespace Fasano\FluentStream;
 
-use Fasano\FluentStream\Operation\Chunk;
-use Fasano\FluentStream\Operation\Each;
-use Fasano\FluentStream\Operation\Filter;
-use Fasano\FluentStream\Operation\Map;
-use Fasano\FluentStream\Operation\Skip;
-use Fasano\FluentStream\Operation\Sort;
-use Fasano\FluentStream\Operation\Take;
-use Fasano\FluentStream\Operation\Unique;
+use Stringable;
 
 /**
  * @template T
+ * 
+ * @extends Operations<T>
  */
-readonly class Stream
+readonly class Stream extends Operations
 {
     /**
      * @var iterable<T> $source
      */
     public iterable $source;
 
-    /** @var Operation[] */
-    public array $operations;
+    public Workflow $workflow;
 
     /**
      * @param iterable<T> $source
      */
-    public function __construct(iterable $source, Operation ...$operations)
+    public function __construct(iterable $source, ?Workflow $workflow = null)
     {
         $this->source = $source;
-        $this->operations = $operations;
+        $this->workflow = $workflow ?? Workflow::create();
     }
 
     /**
@@ -43,78 +37,11 @@ readonly class Stream
         return new static($source);
     }
 
-    /**
-     * @template U
-     * 
-     * @param callable(T): U $mutation
-     * 
-     * @return static<U>
-     */
-    public function map(callable $mutation): static
+    public function through(Workflow $otherWorkflow): static
     {
-        return $this->addOperation(new Map($mutation));
-    }
+        $workflow = $this->workflow->compose($otherWorkflow);
 
-    /**
-     * @param callable(T): T $sideEffect
-     * 
-     * @return static<T>
-     */
-    public function each(callable $sideEffect): static
-    {
-        return $this->addOperation(new Each($sideEffect));
-    }
-
-    /**
-     * @return static<T>
-     */
-    public function take(int $amount): static
-    {
-        return $this->addOperation(new Take($amount));
-    }
-
-    /**
-     * @param callable(T): bool $predicate
-     * 
-     * @return static<T>
-     */
-    public function filter(callable $predicate): static
-    {
-        return $this->addOperation(new Filter($predicate));
-    }
-
-    /**
-     * @return static<T>
-     */
-    public function skip(int $amount): static
-    {
-        return $this->addOperation(new Skip($amount));
-    }
-
-    /**
-     * @return static<T>
-     */
-    public function unique(): static
-    {
-        return $this->addOperation(new Unique());
-    }
-
-    /**
-     * @return static<T>
-     */
-    public function chunk(int $size): static
-    {
-        return $this->addOperation(new Chunk($size));
-    }
-
-    /**
-     * @param callable(T, T): int $comparison
-     * 
-     * @return static<T>
-     */
-    public function sort(callable $comparison): static
-    {
-        return $this->addOperation(new Sort($comparison));
+        return new static($this->source, $workflow);
     }
 
     /**
@@ -122,10 +49,9 @@ readonly class Stream
      */
     protected function addOperation(Operation $operation): static
     {
-        $operations = $this->operations;
-        $operations[] = $operation;
+        $workflow = $this->workflow->addOperation($operation);
 
-        return new static($this->source, ...$operations);
+        return new static($this->source, $workflow);
     }
 
     /**
@@ -152,7 +78,7 @@ readonly class Stream
     {
         $current = $this->source;
         
-        foreach ($this->operations as $operation) {
+        foreach ($this->workflow->operations as $operation) {
             $current = $operation->apply($current);
         }
         
@@ -165,6 +91,24 @@ readonly class Stream
     public function collectArray(): array
     {
         return iterator_to_array($this->collect());
+    }
+
+    /**
+     * @template K of int|Stringable
+     * 
+     * @param callable(T): K
+     * 
+     * @return array<K, array<T>>
+     */
+    public function partition(callable $partitioner): array
+    {
+        $items = [];
+
+        foreach ($this->collect() as $item) {
+            $items[$partitioner($item)][] = $item;
+        }
+
+        return $items;
     }
 
     /**

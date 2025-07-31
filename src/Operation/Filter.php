@@ -14,7 +14,7 @@ final readonly class Filter implements Operation
         $this->predicate = Closure::fromCallable($predicate);
     }
 
-    public function apply(iterable $input): \Generator
+    public function apply(iterable $input): iterable
     {
         foreach ($input as $key => $value) {
             if (($this->predicate)($value, $key)) {

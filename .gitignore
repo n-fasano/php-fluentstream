@@ -7,3 +7,5 @@ coverage/
 
 # IDE files
 .vscode/
+
+index.php
